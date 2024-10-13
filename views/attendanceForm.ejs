@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Form</title>
+</head>
+<body>
+    <h1>Attendance Form</h1>
+    <form action="/attendance/submit" method="POST">
+        <input type="hidden" name="attendanceId" value="<%= attendanceId %>">
+        <label for="studentId">Student ID:</label>
+        <input type="text" name="studentId" required>
+        <label for="studentName">Student Name:</label>
+        <input type="text" name="studentName" required>
+        <label for="latitude">Latitude:</label>
+        <input type="text" name="latitude" required>
+        <label for="longitude">Longitude:</label>
+        <input type="text" name="longitude" required>
+        <button type="submit">Submit Attendance</button>
+    </form>
+</body>
+</html>

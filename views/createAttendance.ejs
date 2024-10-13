@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Attendance</title>
+</head>
+<body>
+    <h1>Create Attendance</h1>
+    <form action="/api/professor/create-attendance" method="POST">
+        <label for="className">Class Name:</label>
+        <input type="text" name="className" required>
+        <label for="latitude">Latitude:</label>
+        <input type="text" name="latitude" required>
+        <label for="longitude">Longitude:</label>
+        <input type="text" name="longitude" required>
+        <button type="submit">Create Attendance</button>
+    </form>
+</body>
+</html>

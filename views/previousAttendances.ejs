@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Previous Attendances</title>
+</head>
+<body>
+    <h1>Previous Attendances</h1>
+    <ul>
+        <% attendances.forEach(attendance => { %>
+            <li>
+                <p>Class: <%= attendance.className %></p>
+                <p>Date: <%= new Date(attendance.date).toLocaleString() %></p>
+                <a href="/export-attendance/<%= attendance._id %>">Export Attendance</a>
+            </li>
+        <% }) %>
+    </ul>
+    <a href="/dashboard">Back to Dashboard</a>
+</body>
+</html>
