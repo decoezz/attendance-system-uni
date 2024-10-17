@@ -1,64 +1,89 @@
 const Attendance = require('../models/Attendance');
-const calculateDistance = require('../utils/calculateDistance');
 const AppError = require('../utils/appError'); // Assuming you're using custom error handling like AppError
 const express = require('express');
 const router = express.Router();
-// GET route to display attendance form if session is valid
-router.get('/attendance/:code', async (req, res, next) => {
-  // Your code here
+const calculateDistance = require('../utils/calculateDistance');
+const Class = require('../models/Class');
+router.get('/attendance/form/:attendanceCode', async (req, res, next) => {
+  const { attendanceCode } = req.params; // Retrieve the attendanceCode from the URL
+  const attendance = await Attendance.findOne({ attendanceCode });
+  if (!attendance) {
+    return res.status(404).send('Attendance session not found.');
+  }
+  res.render('attendanceForm', { attendanceId: attendance._id });
 });
-
-// POST route to handle attendance submission
 router.post('/attendance/submit', async (req, res) => {
-  const { attendanceId, studentId, studentName, latitude, longitude } =
+  const { attendanceId, studentId, latitude, longitude, fingerprint } =
     req.body;
-  const ipAddress = req.clientIp; // request-ip middleware will provide the client's IP
+  const ipAddress =
+    req.clientIp || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-  // Find the attendance session
-  const attendance = await Attendance.findById(attendanceId);
+  if (!fingerprint) {
+    return res.status(400).send('Fingerprint is required.');
+  }
 
-  // Check if the session is still active and not expired
+  if (!latitude || !longitude) {
+    return res.status(400).send('Location data is missing.');
+  }
+
+  const attendance =
+    await Attendance.findById(attendanceId).populate('classId');
   if (!attendance || attendance.expiryTime < Date.now()) {
     return res.send('Attendance session is no longer active.');
   }
 
-  // Check for duplicates by student ID or IP address
-  const existingEntry = attendance.students.find(
-    (s) => s.studentId === studentId || s.ipAddress === ipAddress,
+  const classInfo = attendance.classId;
+  const validStudent = classInfo.students.find(
+    (student) => student.studentId == studentId,
   );
-
-  if (existingEntry) {
-    return res.send('You have already submitted your attendance.');
+  if (!validStudent) {
+    return res.status(403).send('Your student ID is invalid for this class.');
   }
 
-  // Validate proximity using the calculateDistance function
+  const existingEntry = await Attendance.findOne({
+    _id: attendanceId,
+    $or: [
+      { 'studentsPresent.studentId': studentId },
+      { 'studentsPresent.fingerprint': fingerprint },
+      { 'studentsPresent.ipAddress': ipAddress },
+    ],
+  });
+
+  if (existingEntry) {
+    return res
+      .status(403)
+      .send(
+        'Attendance already submitted with this student ID, device, or IP.',
+      );
+  }
+
   const distance = calculateDistance(
-    attendance.latitude,
-    attendance.longitude,
-    latitude,
-    longitude,
+    parseFloat(attendance.latitude),
+    parseFloat(attendance.longitude),
+    parseFloat(latitude),
+    parseFloat(longitude),
   );
 
-  // If the student is not within the required 10 meters, reject their attendance submission
-  if (distance > 10) {
+  const DISTANCE_THRESHOLD = attendance.radius;
+  if (distance > DISTANCE_THRESHOLD) {
     return res.send(
-      'You are not within the required range to submit attendance.',
+      `You are not within the required range to submit attendance. Distance: ${distance.toFixed(
+        2,
+      )} meters.`,
     );
   }
 
-  // Add the student's attendance details to the attendance session
-  attendance.students.push({
+  attendance.studentsPresent.push({
     studentId,
-    studentName,
     ipAddress,
     latitude,
     longitude,
+    fingerprint,
+    timestamp: new Date(),
   });
 
-  // Save the updated attendance session with the new student's data
   await attendance.save();
-
   res.send('Attendance submitted successfully.');
 });
-module.exports = router;
 
+module.exports = router;

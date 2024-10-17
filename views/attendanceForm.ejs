@@ -1,23 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attendance Form</title>
+  <meta charset="UTF-8">
+  <title>Attendance Submission</title>
+  <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
 </head>
 <body>
-    <h1>Attendance Form</h1>
-    <form action="/attendance/submit" method="POST">
-        <input type="hidden" name="attendanceId" value="<%= attendanceId %>">
-        <label for="studentId">Student ID:</label>
-        <input type="text" name="studentId" required>
-        <label for="studentName">Student Name:</label>
-        <input type="text" name="studentName" required>
-        <label for="latitude">Latitude:</label>
-        <input type="text" name="latitude" required>
-        <label for="longitude">Longitude:</label>
-        <input type="text" name="longitude" required>
-        <button type="submit">Submit Attendance</button>
-    </form>
+  <form id="attendanceForm" action="/api/student/attendance/submit" method="POST" onsubmit="disableSubmitButton()">
+    <input type="hidden" name="attendanceId" value="<%= attendanceId %>" />
+    <input type="hidden" name="latitude" id="latitude" required />
+    <input type="hidden" name="longitude" id="longitude" required />
+    <input type="hidden" name="fingerprint" id="fingerprint" />
+
+    <label for="studentId">Student ID:</label>
+    <input type="number" id="studentId" name="studentId" required /><br />
+
+    <button type="submit" id="submitBtn" disabled>Submit Attendance</button>
+  </form>
+
+  <script>
+    // State to track whether both fingerprint and location are ready
+    const state = {
+      fingerprintReady: false,
+      locationReady: false,
+    };
+
+    // Check if both fingerprint and location are ready to enable the submit button
+    function checkIfReady() {
+      if (state.fingerprintReady && state.locationReady) {
+        document.getElementById('submitBtn').disabled = false;
+      }
+    }
+
+    // Generate Fingerprint
+    async function generateFingerprint() {
+      try {
+        const fp = await FingerprintJS.load();
+        const result = await fp.get();
+        const visitorId = result.visitorId;
+        document.getElementById('fingerprint').value = visitorId;
+        state.fingerprintReady = true;
+        checkIfReady();
+      } catch (error) {
+        console.error('Fingerprint generation failed:', error);
+        alert('Failed to generate fingerprint. Please try again.');
+      }
+    }
+
+    // Improved getLocation function using Promises and permissions API
+    async function getLocation() {
+      try {
+        const permission = await navigator.permissions.query({ name: 'geolocation' });
+
+        if (permission.state === 'denied') {
+          alert('Location permission denied. Please enable location services.');
+          return;
+        }
+
+        const position = await getCurrentPositionWithRetry(3); // Max 3 retries
+        document.getElementById('latitude').value = position.coords.latitude;
+        document.getElementById('longitude').value = position.coords.longitude;
+
+        state.locationReady = true;
+        checkIfReady();
+      } catch (error) {
+        console.error('Location retrieval failed:', error);
+        alert('Unable to retrieve location. Please try again.');
+      }
+    }
+
+    // Geolocation as a Promise with retry logic
+    function getCurrentPositionWithRetry(maxRetries) {
+      let attempts = 0;
+
+      return new Promise((resolve, reject) => {
+        const attempt = () => {
+          navigator.geolocation.getCurrentPosition(
+            resolve,
+            (error) => {
+              if (attempts < maxRetries) {
+                attempts++;
+                console.warn(`Retrying location... (${attempts}/${maxRetries})`);
+                attempt(); // Retry
+              } else {
+                reject(error); // Fail after max retries
+              }
+            },
+            {
+              enableHighAccuracy: false, // Faster but less accurate
+              timeout: 5000, // 5 seconds timeout
+              maximumAge: 10000, // Use cached location if available within 10 seconds
+            }
+          );
+        };
+
+        attempt(); // Start the first attempt
+      });
+    }
+
+    // Disable submit button on form submission
+    function disableSubmitButton() {
+      document.getElementById('submitBtn').disabled = true;
+    }
+
+    // Re-enable the submit button on page reload from cache
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted) {
+        document.getElementById('submitBtn').disabled = false;
+      }
+    });
+
+    // Run both fingerprint generation and location gathering on page load
+    window.onload = () => {
+      generateFingerprint();
+      getLocation();
+    };
+  </script>
 </body>
 </html>

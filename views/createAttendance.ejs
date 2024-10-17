@@ -1,20 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Attendance</title>
+  <meta charset="UTF-8">
+  <title>Create Attendance</title>
+  <style>
+    /* Basic styling */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    form {
+      max-width: 400px;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+    }
+  </style>
 </head>
 <body>
-    <h1>Create Attendance</h1>
-    <form action="/api/professor/create-attendance" method="POST">
-        <label for="className">Class Name:</label>
-        <input type="text" name="className" required>
-        <label for="latitude">Latitude:</label>
-        <input type="text" name="latitude" required>
-        <label for="longitude">Longitude:</label>
-        <input type="text" name="longitude" required>
-        <button type="submit">Create Attendance</button>
-    </form>
+  <form action="/api/professor/create-attendance" method="POST">
+    <label for="classId">Select Class:</label>
+    <select name="classId" required>
+      <% classes.forEach(function(classItem) { %>
+        <option value="<%= classItem._id %>"><%= classItem.className %></option>
+      <% }); %>
+    </select>
+
+    <!-- Hidden fields for location -->
+    <input type="hidden" name="latitude" id="latitude" required />
+    <input type="hidden" name="longitude" id="longitude" required />
+
+    <label for="radius">Radius (meters):</label>
+    <input type="number" name="radius" required />
+
+    <button type="submit" id="submitBtn" disabled>Create Attendance</button>
+  </form>
+
+  <script>
+    let positions = [];
+    const MAX_READINGS = 5;
+    const READ_INTERVAL = 1000; // 1 second between readings
+
+    function getLocation() {
+      if (navigator.geolocation) {
+        for (let i = 0; i < MAX_READINGS; i++) {
+          setTimeout(() => {
+            navigator.geolocation.getCurrentPosition(showPosition, showError, {
+              enableHighAccuracy: true,
+              timeout: 5000,
+              maximumAge: 0
+            });
+          }, i * READ_INTERVAL);
+        }
+      } else {
+        alert("Geolocation is not supported by this browser.");
+      }
+    }
+
+    function showPosition(position) {
+      positions.push({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude
+      });
+
+      if (positions.length === MAX_READINGS) {
+        const avgLatitude = positions.reduce((sum, pos) => sum + pos.latitude, 0) / MAX_READINGS;
+        const avgLongitude = positions.reduce((sum, pos) => sum + pos.longitude, 0) / MAX_READINGS;
+
+        document.getElementById("latitude").value = avgLatitude;
+        document.getElementById("longitude").value = avgLongitude;
+        document.getElementById("submitBtn").disabled = false;
+      }
+    }
+
+    function showError(error) {
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          alert("User denied the request for Geolocation.");
+          break;
+        case error.POSITION_UNAVAILABLE:
+          alert("Location information is unavailable.");
+          break;
+        case error.TIMEOUT:
+          alert("The request to get user location timed out.");
+          break;
+        case error.UNKNOWN_ERROR:
+          alert("An unknown error occurred.");
+          break;
+      }
+    }
+
+    window.onload = getLocation;
+  </script>
 </body>
 </html>

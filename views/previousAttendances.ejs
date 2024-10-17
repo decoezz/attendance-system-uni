@@ -12,10 +12,10 @@
             <li>
                 <p>Class: <%= attendance.className %></p>
                 <p>Date: <%= new Date(attendance.date).toLocaleString() %></p>
-                <a href="/export-attendance/<%= attendance._id %>">Export Attendance</a>
+                <a href="/api/professor/export-attendance/<%= attendance._id %>">Export Attendance</a>
             </li>
         <% }) %>
     </ul>
-    <a href="/dashboard">Back to Dashboard</a>
+    <a href="dashboard">Back to Dashboard</a>
 </body>
 </html>

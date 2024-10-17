@@ -1,5 +1,4 @@
 module.exports = [
   { username: 'mostafa', password: 'mostafa' },
-  { username: 'decoezz', password: 'DECO12pool' },
-  { username: 'locked', password: 'cloudsky12' },
+  { username: 'decoezz', password: '12345Qwe12345#@' },
 ];

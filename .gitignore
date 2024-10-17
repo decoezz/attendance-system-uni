@@ -2,7 +2,7 @@
 node_modules/
 
 # Exclude the professor.js file from routes folder
-routes/professor.js
+routes/professors.js
 
 # Exclude the config file
 config.env

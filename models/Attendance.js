@@ -1,46 +1,31 @@
+// models/Attendance.js
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
 
-// Define the schema for individual student attendance
-const studentSchema = new Schema({
-  studentId: {
-    type: String,
+const attendanceSchema = new mongoose.Schema({
+  classId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Class',
     required: true,
   },
-  studentName: {
-    type: String,
-    required: true,
-  },
-  ipAddress: {
-    type: String,
-    required: true,
-  },
-  latitude: {
-    type: Number,
-    required: true,
-  },
-  longitude: {
-    type: Number,
-    required: true,
-  },
-  timestamp: {
-    type: Date,
-    default: Date.now,
-  },
-});
-
-// Define the schema for the attendance session
-const attendanceSchema = new Schema({
-  className: {
+  prof: {
     type: String,
     required: true,
   },
   date: {
     type: Date,
-    default: Date.now, // Automatically sets the current date
+    default: Date.now,
   },
-  professor: {
+  attendanceCode: {
     type: String,
+    unique: true,
+    required: true,
+  },
+  expiryTime: {
+    type: Number,
+    required: true,
+  },
+  radius: {
+    type: Number,
     required: true,
   },
   latitude: {
@@ -51,17 +36,29 @@ const attendanceSchema = new Schema({
     type: Number,
     required: true,
   },
-  attendanceCode: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  expiryTime: {
-    type: Date,
-    required: true, // Set the expiry time when the attendance is created
-  },
-  students: [studentSchema], // Embed the student attendance details here
+  studentsPresent: [
+    {
+      studentId: Number,
+      ipAddress: String,
+      latitude: Number,
+      longitude: Number,
+      fingerprint: String, // New field to store the fingerprint
+      timestamp: {
+        type: Date,
+        default: Date.now,
+      },
+    },
+  ],
 });
 
-// Export the model for use in other parts of the application
+// Define a unique, sparse index to prevent duplicates
+attendanceSchema.index(
+  {
+    'studentsPresent.studentId': 1,
+    'studentsPresent.fingerprint': 1,
+    'studentsPresent.ipAddress': 1,
+  },
+  { unique: true, sparse: true },
+);
+
 module.exports = mongoose.model('Attendance', attendanceSchema);

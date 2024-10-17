@@ -2,22 +2,20 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const app = require('./app');
 
-dotenv.config(); // Load environment variables
-
-console.log('Database URL:', process.env.DATABASE);
+dotenv.config({ path: './config.env' }); // Load environment variables
 
 process.on('uncaughtException', (err) => {
   console.log('Shutting down due to an uncaught exception... 💣');
   console.log(err.name, err.message);
   process.exit(1);
 });
-
+const DB = process.env.DATABASE.replace(
+  '<PASSWORD>',
+  process.env.DATABASE_PASSWORD,
+);
 // Connect to MongoDB
 mongoose
-  .connect(process.env.DATABASE, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(DB)
   .then(() => console.log('MongoDB connected successfully'))
   .catch((err) => console.log('MongoDB connection error:', err));
 
